@@ -1,8 +1,9 @@
-"""Optional LiveKit realtime worker (the local web app is started with web_app.py)."""
+"""Archived LiveKit worker. The active Friday app uses ElevenLabs and does not run this module."""
 
 import json
 import logging
 import os
+from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
@@ -17,12 +18,12 @@ from livekit.agents import (
 )
 from livekit.plugins import noise_cancellation, openai
 
-from mcp_client import MCPServerSse
-from mcp_client.agent_tools import MCPToolsIntegration
-from prompts import AGENT_INSTRUCTION, SESSION_INSTRUCTION
-from tools import get_weather, search_web, send_email
+from friday.mcp_client import MCPServerSse
+from .mcp_client.agent_tools import MCPToolsIntegration
+from .prompts import AGENT_INSTRUCTION, SESSION_INSTRUCTION
+from .tools import get_weather, search_web, send_email
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
 logger = logging.getLogger("friday.livekit")
 
 try:

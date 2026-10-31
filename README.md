@@ -1,22 +1,10 @@
-# Friday — Personal Assistant
+# Friday Personal Assistant
 
-Friday is a local-first personal assistant built around `friday_jarvis2-main`. It runs as a browser app and does **not** need LiveKit. ElevenLabs provides voice transcription and spoken replies; an OpenAI-compatible model provides the assistant's reasoning and chat responses.
+The repository now has **one active Friday project** in the `friday/` directory. It combines the useful assistant capabilities from both earlier folders into one browser app: an OpenAI-compatible model for chat and reasoning, ElevenLabs for voice transcription and spoken replies, SQLite memory/history, weather and web search, reviewed email drafts, and optional n8n/MCP tools. LiveKit is not used by the active app.
 
-## What it can do
+## Run Friday
 
-- Chat with an OpenAI-compatible language model.
-- Record a voice message and transcribe it with ElevenLabs Scribe when configured; supported browsers have a speech-recognition fallback.
-- Read replies aloud with ElevenLabs when configured; browser speech synthesis is the fallback.
-- Keep conversation history and explicit personal memories in a local SQLite database.
-- Look up current weather and search the web.
-- Prepare email drafts. **Friday never sends a web-app email without your separate review and confirmation.** Gmail sending is optional.
-- Optionally connect an n8n MCP SSE endpoint to expose extra tools, such as Spotify workflows.
-
-Chat history and memories are stored locally, but prompts go to the model provider you configure. Voice recordings are sent to ElevenLabs for transcription and response text is sent to ElevenLabs when spoken replies are enabled. Weather, web search, email, and MCP tools also contact their configured services. Use a local OpenAI-compatible model if you do not want chat requests to go to a hosted model provider.
-
-## Run the app
-
-Use Python 3.11 or newer.
+Use Python 3.11 or newer. From the repository root:
 
 ```bash
 python -m venv .venv
@@ -24,62 +12,58 @@ python -m venv .venv
 source .venv/bin/activate
 # Windows PowerShell: .venv\Scripts\Activate.ps1
 
-python -m pip install -r friday_jarvis2-main/requirements.txt
-cp friday_jarvis2-main/.env.example friday_jarvis2-main/.env
+python -m pip install -r friday/requirements.txt
+cp friday/.env.example friday/.env
 ```
 
-Edit `friday_jarvis2-main/.env` and set:
+Edit `friday/.env` and set:
 
-- `OPENAI_API_KEY` for the model that powers Friday's chat. The default is `gpt-4o-mini`; change `OPENAI_MODEL` if your provider uses a different model.
-- `ELEVENLABS_API_KEY` for ElevenLabs voice transcription and synthesis.
-- `ELEVENLABS_VOICE_ID` for the voice Friday should use when reading replies aloud. Find the ID for a voice in your ElevenLabs account.
+- `OPENAI_API_KEY` for the model that powers chat. The default is `gpt-4o-mini`; update `OPENAI_MODEL` for your provider/model.
+- `ELEVENLABS_API_KEY` for voice transcription and synthesis.
+- `ELEVENLABS_VOICE_ID` for Friday's spoken replies.
 
-`OPENAI_BASE_URL` is optional for an OpenAI-compatible local model server. Keep `.env` private and never commit it.
-
-Start Friday from the project folder:
+Then run from the repository root:
 
 ```bash
-cd friday_jarvis2-main
-uvicorn web_app:app --host 127.0.0.1 --port 8000
+python -m friday
 ```
 
-Then open <http://127.0.0.1:8000>. Enable spoken replies with the **Voice off** control. Use the microphone button to record and transcribe a message; allow microphone access when prompted. The browser app calls ElevenLabs through the server, so the ElevenLabs key is never sent to the browser. The app creates `friday_jarvis2-main/data/friday.sqlite3` automatically; that database is ignored by Git and contains local chat history, memories, and email drafts.
+Open <http://127.0.0.1:8000>. Or run with Uvicorn directly:
+
+```bash
+uvicorn friday.web_app:app --host 127.0.0.1 --port 8000
+```
+
+Friday records microphone audio and sends it to ElevenLabs Scribe when configured; spoken replies use ElevenLabs when configured. Browser speech features are fallbacks. Chat prompts go to your configured model provider. The local SQLite database is created at `friday/data/friday.sqlite3` and is ignored by Git.
 
 ## Optional integrations
 
-### Gmail
-
-Set `GMAIL_USER` and `GMAIL_APP_PASSWORD` in `.env` to send a reviewed draft. For Gmail, use a Google App Password rather than your normal account password. Friday first prepares a draft; review the recipient, subject, and body in the app, then explicitly choose **Review & send**.
-
-### n8n / MCP
-
-Set `N8N_MCP_SERVER_URL` to an MCP **SSE** endpoint in `.env`; if required, also set `N8N_MCP_SERVER_TOKEN`. The web app discovers tools when it starts. The Spotify instructions only apply if the MCP server actually exposes corresponding Spotify tools. Email-related MCP tools are hidden from the web app so they cannot bypass its review-before-send flow. If the optional server is offline, Friday still starts with its built-in tools.
+- **Gmail:** set `GMAIL_USER` and `GMAIL_APP_PASSWORD` to send a draft. Friday will not send from the browser app until you review the recipient, subject, and body and confirm in the UI. Use a Google App Password, not your normal password.
+- **n8n/MCP:** set `N8N_MCP_SERVER_URL` to an MCP SSE endpoint, and `N8N_MCP_SERVER_TOKEN` if required. Friday loads remote tools at startup. Email-related MCP tools are hidden so they cannot bypass the draft-confirmation flow.
+- **OpenAI-compatible local model:** set `OPENAI_BASE_URL` and the corresponding API key value in `.env`.
 
 ## Privacy and safety
 
-- The app has no sign-in system and is intended for one trusted user on a private machine.
-- Keep it bound to `127.0.0.1`; do not expose it to the public internet or an untrusted network without adding authentication and HTTPS.
-- API keys are read by the server and are not returned to the browser.
-- Chat history and memories are local; chat prompts go to your configured model provider. Microphone recordings and text sent for spoken replies go to ElevenLabs.
-- Web-app email is sent only after you review and confirm the draft.
-
-## Legacy LiveKit files
-
-`friday_jarvis2-main/agent.py`, `mcp_client/agent_tools.py`, and `friday_jarvis-main/` are the original LiveKit prototypes, retained as historical references. They are not part of the browser app and are not needed to run Friday. The current app uses ElevenLabs for voice and the core `requirements.txt` does not install LiveKit.
+- The app has no sign-in and is intended for one trusted user on a private machine. Keep it bound to `127.0.0.1`; do not expose it publicly without authentication and HTTPS.
+- API keys remain server-side and are not sent to the browser.
+- Chat history and memories are local, but prompts are sent to the model provider. Voice recordings and text-to-speech requests go to ElevenLabs.
+- Email is sent only after a user reviews and confirms its draft.
 
 ## Tests
 
+From the repository root:
+
 ```bash
-cd friday_jarvis2-main
-python -m unittest discover -s tests -v
+python -m unittest discover -s friday/tests -v
 ```
 
 ## Project layout
 
-- `friday_jarvis2-main/web_app.py` — app API, model/tool orchestration, SQLite storage, and ElevenLabs endpoints.
-- `friday_jarvis2-main/static/` — browser interface, microphone recording, and audio playback.
-- `friday_jarvis2-main/mcp_client/server.py` — optional MCP SSE transport; the Stdio class is a placeholder.
-- `friday_jarvis2-main/agent.py` — legacy LiveKit prototype, not used by the app.
-- `friday_jarvis-main/` — original first-version snapshot.
+- `friday/` — the single active assistant app.
+- `friday/static/` — browser interface, microphone recording, and audio playback.
+- `friday/mcp_client/` — MCP SSE transport used by the active app.
+- `friday/legacy/first_version/` — original first LiveKit prototype, retained for reference.
+- `friday/legacy/livekit_worker/` — previous LiveKit worker and adapters, retained for reference only.
+- `friday/LICENSE` and `friday/thirdparty/` — project and third-party license files.
 
-Please review the project-specific license in `friday_jarvis2-main/LICENSE` before redistribution or commercial use.
+The older source has been consolidated under `friday/legacy/`; use `friday/` for all normal setup and development. Review `friday/LICENSE` before redistribution or commercial use.

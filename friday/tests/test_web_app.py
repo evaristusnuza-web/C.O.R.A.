@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-import web_app
+from friday import web_app
 
 
 class FridayWebAppTests(unittest.TestCase):

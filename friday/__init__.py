@@ -1,0 +1,1 @@
+"""Friday personal assistant package."""

@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Any
 
-from .server import MCPServer
+from friday.mcp_client.server import MCPServer
 
 logger = logging.getLogger(__name__)
 

@@ -86,7 +86,7 @@
 
     const notes = [];
     if (!modelConfigured) {
-      notes.push('<strong>One quick setup step:</strong> add your model API key to <code>friday_jarvis2-main/.env</code>, then restart the app. The included <code>.env.example</code> shows the settings.');
+      notes.push('<strong>One quick setup step:</strong> add your model API key to <code>friday/.env</code>, then restart the app. The included <code>.env.example</code> shows the settings.');
     }
     if (!state.health.elevenlabs_stt_configured) {
       notes.push('Set ELEVENLABS_API_KEY to use ElevenLabs transcription; browser voice recognition is used as a fallback where available.');

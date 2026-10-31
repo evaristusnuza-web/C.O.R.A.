@@ -9,8 +9,8 @@ venv/
 .env
 .env.*
 !.env.example
-friday_jarvis2-main/.env
-friday_jarvis2-main/data/
+friday/.env
+friday/data/
 *.sqlite3
 *.db
 

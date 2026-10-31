@@ -8,7 +8,7 @@ import typing
 from collections.abc import Callable
 from typing import Any
 
-from .server import MCPServer
+from friday.mcp_client.server import MCPServer
 from .util import FunctionTool, MCPUtil
 
 logger = logging.getLogger("mcp-agent-tools")

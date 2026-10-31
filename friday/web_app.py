@@ -1,7 +1,7 @@
 """Friday's local-first web assistant.
 
-Run from this directory with:
-    uvicorn web_app:app --host 0.0.0.0 --port 8000
+Run from the repository root with:
+    uvicorn friday.web_app:app --host 127.0.0.1 --port 8000
 
 The browser talks only to this same-origin app. API keys stay on the server.
 """
@@ -367,7 +367,7 @@ def _get_openai_client() -> AsyncOpenAI:
     if not api_key:
         raise HTTPException(
             status_code=503,
-            detail="Chat is not configured yet. Add OPENAI_API_KEY to friday_jarvis2-main/.env, then restart Friday.",
+            detail="Chat is not configured yet. Add OPENAI_API_KEY to friday/.env, then restart Friday.",
         )
     base_url = os.getenv("OPENAI_BASE_URL", "").strip() or None
     config = (api_key, base_url)
@@ -414,7 +414,7 @@ class MCPBridge:
         return self.server is not None and getattr(self.server, "connected", False)
 
     async def connect(self, url: str, token: str = "") -> None:
-        from mcp_client import MCPServerSse
+        from .mcp_client import MCPServerSse
 
         headers = {"Authorization": f"Bearer {token}"} if token else None
         server = MCPServerSse(
@@ -1022,4 +1022,4 @@ async def discard_draft(draft_id: str) -> dict[str, str]:
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("web_app:app", host="0.0.0.0", port=int(os.getenv("PORT", "8000")), reload=False)
+    uvicorn.run("friday.web_app:app", host=os.getenv("FRIDAY_HOST", "127.0.0.1"), port=int(os.getenv("PORT", "8000")), reload=False)
