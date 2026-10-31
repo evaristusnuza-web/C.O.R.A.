@@ -1,45 +1,21 @@
-# 🧠 Friday - Your Personal AI Assistant - Part 2
+# Friday Personal Assistant
 
-This is a Python-based AI assistant inspired by *Jarvis*, capable of:
+This directory contains the current browser app. It uses an OpenAI-compatible model for chat and ElevenLabs for voice transcription and spoken replies; **LiveKit is not used by the app**.
 
-- 🔍 Searching the web  
-- 🌤️ Weather checking
-- 📨 Sending Emails 
-- 📷 Vision through camera (Web app)
-- 🗣️ Speech
-- 📝 Chat (Web app) 
-- 🧠 Smart Memory System
-- 🎵 Spotify Integration
+For setup, API configuration, privacy notes, and optional integrations, see the [repository README](../README.md).
 
+Quick start:
 
----
+```bash
+python -m pip install -r requirements.txt
+cp .env.example .env
+# Set OPENAI_API_KEY, ELEVENLABS_API_KEY, and ELEVENLABS_VOICE_ID in .env.
+uvicorn web_app:app --host 127.0.0.1 --port 8000
+```
 
-## 📽️ Tutorial Video
-
-Here is part 1 , **make sure to follow this tutorial to set up the voice agent correctly**:  
-🎥 [Watch here](https://youtu.be/An4NwL8QSQ4?si=v1dNDDonmpCG1Els)
-
-Here is part 2 **to use the memory system and the n8n MCP server follow this tutorial**:
-🎥 [Watch here](https://www.youtube.com/watch?v=gqmSKEUpRv8&ab_channel=Thanh-yDavidNguyen)
-
-
----
-1. Create the Virtual Envrionment first!
-2. Activate it
-3. Install all the required libraries in the requirements.txt file
-4. In the .ENV - File you should paste your API-Keys and your LiveKit Secret, LiveKit URL.
-   If you want to use the Send Email Tool also specify your Gmail Account and App Password. 
-5. Make sure that your LiveKit Account is set-up correctly. 
-6. Make sure that your Mem0 Account is set-up correctly.
-7. Make sure to have a MCP Server correctly set-up.
-
+The legacy `agent.py` file is retained as a reference and is not required to run the app.
 
 ## Licenses
 
-- Proprietary portions: All files except `mcp_client` and portions of `agent.py` not authored by Thanh-Y Nguyen — Copyright © 2025 Thanh-Y Nguyen.  
-  Licensed for private/educational use only. Redistribution, publication, or commercial use is prohibited without written permission.  
-
-- Third-party components:
-  - `mcp_client` — Copyright © LiveKit, Inc., MIT License.  
-  - Portions of `agent.py` not authored by Thanh-Y Nguyen — MIT or other applicable license.  
-  See `LICENSE-LIVEKIT` for details.
+- Proprietary portions: See [`LICENSE`](LICENSE) for personal/educational-use terms and restrictions.
+- The `mcp_client` folder includes portions licensed under the MIT License; see [`thirdparty/LICENSE-LIVEKIT`](thirdparty/LICENSE-LIVEKIT).

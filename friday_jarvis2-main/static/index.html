@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101319">
+  <meta name="description" content="Friday, your personal assistant. Chat, speak, search, remember, and prepare email drafts.">
+  <title>Friday — Personal Assistant</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Conversations">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><span>F</span></div>
+        <div class="brand-copy"><strong>Friday</strong><span>PERSONAL ASSISTANT</span></div>
+        <button class="icon-button sidebar-close" id="sidebar-close" type="button" aria-label="Close menu">×</button>
+      </div>
+
+      <button class="new-chat-button" id="new-chat" type="button">
+        <span class="plus-icon" aria-hidden="true">＋</span><span>New conversation</span>
+        <span class="shortcut">⌘ K</span>
+      </button>
+
+      <div class="sidebar-label">RECENT</div>
+      <nav class="conversation-list" id="conversation-list" aria-label="Recent conversations"></nav>
+
+      <div class="sidebar-bottom">
+        <button class="memory-shortcut" id="open-memories" type="button">
+          <span class="memory-icon" aria-hidden="true">✧</span>
+          <span><strong>Personal memory</strong><small>Facts you asked Friday to remember</small></span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+        <div class="privacy-note"><span class="privacy-dot"></span><span>History stored locally · prompts go to your model provider</span></div>
+      </div>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-button mobile-menu" id="mobile-menu" type="button" aria-label="Open menu">☰</button>
+          <div class="page-title-wrap">
+            <div class="eyebrow">YOUR PERSONAL ASSISTANT</div>
+            <h1 id="conversation-title">A little help, whenever you need it.</h1>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <div class="status-pill" id="model-status" title="Assistant setup status"><span class="status-dot"></span><span>Checking setup</span></div>
+          <button class="icon-button delete-chat" id="delete-chat" type="button" aria-label="Delete this conversation" title="Delete this conversation">
+            <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true"><path d="M4.5 6.2h11M8 6.2V4.5h4v1.7m-6.2 0 .6 9.2h7.2l.6-9.2M8.4 9v4.2m3.2-4.2v4.2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="topbar-button" id="toggle-speech" type="button" aria-pressed="false" title="Read replies aloud">
+            <span aria-hidden="true">◖))</span><span class="speech-label">Voice off</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="setup-banner hidden" id="setup-banner" role="status"></div>
+
+      <section class="conversation-stage" aria-label="Conversation">
+        <div class="welcome-screen" id="welcome-screen">
+          <div class="welcome-orb" aria-hidden="true"><span>F</span><i></i></div>
+          <div class="welcome-kicker">AT YOUR SERVICE</div>
+          <h2>What can I take<br>off your plate?</h2>
+          <p>Ask a question, find something out, or talk through what you need.</p>
+          <div class="suggestion-grid">
+            <button class="suggestion-card" type="button" data-prompt="What's the weather like in Yaoundé today?">
+              <span class="suggestion-icon weather-icon" aria-hidden="true">☼</span><span><strong>Check the weather</strong><small>Plan for today</small></span><span class="suggestion-arrow">↗</span>
+            </button>
+            <button class="suggestion-card" type="button" data-prompt="Search the web for the latest news about artificial intelligence.">
+              <span class="suggestion-icon search-icon" aria-hidden="true">⌕</span><span><strong>Look something up</strong><small>Find current information</small></span><span class="suggestion-arrow">↗</span>
+            </button>
+            <button class="suggestion-card" type="button" data-prompt="Help me write an email to someone. Ask me for any details you need, then prepare a draft for me to review.">
+              <span class="suggestion-icon mail-icon" aria-hidden="true">✉</span><span><strong>Draft an email</strong><small>You approve before it sends</small></span><span class="suggestion-arrow">↗</span>
+            </button>
+            <button class="suggestion-card" type="button" data-prompt="Remember that I prefer concise answers and practical suggestions.">
+              <span class="suggestion-icon memory-icon" aria-hidden="true">✧</span><span><strong>Save a preference</strong><small>Build your personal memory</small></span><span class="suggestion-arrow">↗</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="message-list hidden" id="message-list" aria-live="polite"></div>
+        <div class="draft-list" id="draft-list" aria-label="Email drafts"></div>
+      </section>
+
+      <div class="thinking-row hidden" id="thinking-row" role="status"><span class="thinking-avatar">F</span><span class="thinking-dots"><i></i><i></i><i></i></span><span>Friday is thinking</span></div>
+
+      <footer class="composer-area">
+        <form class="composer" id="chat-form">
+          <textarea id="message-input" rows="1" maxlength="8000" placeholder="Message Friday…" aria-label="Message Friday"></textarea>
+          <div class="composer-controls">
+            <div class="composer-hint"><span class="composer-lock" aria-hidden="true">⌑</span><span>History stored locally</span></div>
+            <div class="composer-buttons">
+              <span class="voice-label hidden" id="voice-label">Listening…</span>
+              <button class="icon-button mic-button" id="mic-button" type="button" aria-label="Speak your message" title="Speak your message"><span aria-hidden="true">♩</span></button>
+              <button class="send-button" id="send-button" type="submit" aria-label="Send message" disabled><span aria-hidden="true">↑</span></button>
+            </div>
+          </div>
+        </form>
+        <p class="disclaimer">Friday can make mistakes. Check important information before acting on it.</p>
+      </footer>
+    </main>
+
+    <aside class="memory-panel" id="memory-panel" aria-label="Personal memory" aria-hidden="true">
+      <div class="memory-panel-header">
+        <div><div class="eyebrow">PERSONAL MEMORY</div><h2>What Friday knows</h2></div>
+        <button class="icon-button" id="close-memories" type="button" aria-label="Close memory panel">×</button>
+      </div>
+      <p class="memory-intro">Only save details you explicitly ask Friday to remember. These notes are stored locally and can be removed any time.</p>
+      <form class="memory-form" id="memory-form">
+        <label for="memory-input">Add a note</label>
+        <textarea id="memory-input" rows="3" maxlength="1000" placeholder="For example: I prefer short, practical answers."></textarea>
+        <button class="primary-button" type="submit">Save memory</button>
+      </form>
+      <div class="memory-list" id="memory-list"></div>
+    </aside>
+  </div>
+  <div class="mobile-backdrop" id="mobile-backdrop"></div>
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

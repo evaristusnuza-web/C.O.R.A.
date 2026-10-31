@@ -1,112 +1,138 @@
+"""Tool functions used by the optional LiveKit realtime agent."""
+
+import asyncio
 import logging
-from livekit.agents import function_tool, RunContext
-import requests
-from langchain_community.tools import DuckDuckGoSearchRun
 import os
+import re
 import smtplib
-from email.mime.multipart import MIMEMultipart  
-from email.mime.text import MIMEText
-from typing import Optional
+import ssl
+from email.message import EmailMessage
+from email.utils import parseaddr
+from urllib.parse import quote
+
+import httpx
+from livekit.agents import RunContext, function_tool
+
+logger = logging.getLogger(__name__)
+
+
+def _validated_email(address: str) -> str:
+    clean = address.strip()
+    parsed = parseaddr(clean)[1]
+    if parsed != clean or not re.fullmatch(r"[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+", clean):
+        raise ValueError("The recipient email address is invalid.")
+    return clean
+
 
 @function_tool()
-async def get_weather(
-    context: RunContext,  # type: ignore
-    city: str) -> str:
-    """
-    Get the current weather for a given city.
-    """
+async def get_weather(context: RunContext, city: str) -> str:  # type: ignore[valid-type]
+    """Get the current weather for a city."""
+    city = city.strip()
+    if not city:
+        return "Please provide a city for the weather lookup."
+    url = f"https://wttr.in/{quote(city, safe='')}?format=3"
     try:
-        response = requests.get(
-            f"https://wttr.in/{city}?format=3")
-        if response.status_code == 200:
-            logging.info(f"Weather for {city}: {response.text.strip()}")
-            return response.text.strip()   
-        else:
-            logging.error(f"Failed to get weather for {city}: {response.status_code}")
-            return f"Could not retrieve weather for {city}."
-    except Exception as e:
-        logging.error(f"Error retrieving weather for {city}: {e}")
-        return f"An error occurred while retrieving weather for {city}." 
+        async with httpx.AsyncClient(timeout=12, follow_redirects=True) as client:
+            response = await client.get(url, headers={"User-Agent": "FridayAssistant/1.0"})
+        response.raise_for_status()
+        result = response.text.strip()
+        logger.info("Retrieved weather for %s", city)
+        return result[:1000] or f"No weather information was returned for {city}."
+    except httpx.HTTPError as exc:
+        logger.warning("Weather lookup failed for %s: %s", city, exc)
+        return f"I couldn't retrieve weather for {city} just now."
+
+
+def _search_sync(query: str) -> str:
+    from ddgs import DDGS
+
+    with DDGS() as search:
+        results = list(search.text(query, max_results=5))
+    if not results:
+        return "No search results were found."
+    lines = []
+    for result in results:
+        lines.append(
+            f"{result.get('title', 'Untitled')}\n"
+            f"{result.get('href', '')}\n"
+            f"{result.get('body', '')}"
+        )
+    return "\n\n".join(lines)[:10000]
+
 
 @function_tool()
-async def search_web(
-    context: RunContext,  # type: ignore
-    query: str) -> str:
-    """
-    Search the web using DuckDuckGo.
-    """
+async def search_web(context: RunContext, query: str) -> str:  # type: ignore[valid-type]
+    """Search the public web using DuckDuckGo and return a few relevant sources."""
+    query = query.strip()
+    if not query:
+        return "Please provide a web search query."
     try:
-        results = DuckDuckGoSearchRun().run(tool_input=query)
-        logging.info(f"Search results for '{query}': {results}")
-        return results
-    except Exception as e:
-        logging.error(f"Error searching the web for '{query}': {e}")
-        return f"An error occurred while searching the web for '{query}'."    
+        result = await asyncio.to_thread(_search_sync, query)
+        logger.info("Completed web search for %r", query)
+        return result
+    except Exception as exc:  # noqa: BLE001 - DDGS transport errors vary by backend.
+        logger.warning("Web search failed for %r: %s", query, exc)
+        return "Web search failed temporarily. Try again in a moment."
 
-@function_tool()    
-async def send_email(
-    context: RunContext,  # type: ignore
+
+def _send_email_sync(
     to_email: str,
     subject: str,
     message: str,
-    cc_email: Optional[str] = None
+    cc_email: str | None,
 ) -> str:
-    """
-    Send an email through Gmail.
-    
-    Args:
-        to_email: Recipient email address
-        subject: Email subject line
-        message: Email body content
-        cc_email: Optional CC email address
-    """
+    gmail_user = os.getenv("GMAIL_USER", "").strip()
+    gmail_password = os.getenv("GMAIL_APP_PASSWORD", "").strip()
+    if not gmail_user or not gmail_password:
+        return "Email sending failed: Gmail credentials are not configured."
+
+    email = EmailMessage()
+    email["From"] = gmail_user
+    email["To"] = _validated_email(to_email)
+    if cc_email:
+        email["Cc"] = _validated_email(cc_email)
+    email["Subject"] = subject.strip()
+    email.set_content(message)
+
+    host = os.getenv("GMAIL_SMTP_HOST", "smtp.gmail.com")
     try:
-        # Gmail SMTP configuration
-        smtp_server = "smtp.gmail.com"
-        smtp_port = 587
-        
-        # Get credentials from environment variables
-        gmail_user = os.getenv("GMAIL_USER")
-        gmail_password = os.getenv("GMAIL_APP_PASSWORD")  # Use App Password, not regular password
-        
-        if not gmail_user or not gmail_password:
-            logging.error("Gmail credentials not found in environment variables")
-            return "Email sending failed: Gmail credentials not configured."
-        
-        # Create message
-        msg = MIMEMultipart()
-        msg['From'] = gmail_user
-        msg['To'] = to_email
-        msg['Subject'] = subject
-        
-        # Add CC if provided
-        recipients = [to_email]
-        if cc_email:
-            msg['Cc'] = cc_email
-            recipients.append(cc_email)
-        
-        # Attach message body
-        msg.attach(MIMEText(message, 'plain'))
-        
-        # Connect to Gmail SMTP server
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()  # Enable TLS encryption
+        port = int(os.getenv("GMAIL_SMTP_PORT", "587"))
+    except ValueError:
+        return "Email sending failed: GMAIL_SMTP_PORT must be a number."
+
+    with smtplib.SMTP(host, port, timeout=25) as server:
+        server.ehlo()
+        server.starttls(context=ssl.create_default_context())
+        server.ehlo()
         server.login(gmail_user, gmail_password)
-        
-        # Send email
-        text = msg.as_string()
-        server.sendmail(gmail_user, recipients, text)
-        server.quit()
-        
-        logging.info(f"Email sent successfully to {to_email}")
-        return f"Email sent successfully to {to_email}"
-        
+        server.send_message(email)
+    return f"Email sent successfully to {to_email}."
+
+
+@function_tool()
+async def send_email(
+    context: RunContext,  # type: ignore[valid-type]
+    to_email: str,
+    subject: str,
+    message: str,
+    cc_email: str | None = None,
+) -> str:
+    """Send an email via Gmail after the user has explicitly approved the exact recipient, subject, and body."""
+    if not subject.strip() or not message.strip():
+        return "Email sending failed: a subject and message are required."
+    try:
+        _validated_email(to_email)
+        if cc_email:
+            _validated_email(cc_email)
+        return await asyncio.to_thread(_send_email_sync, to_email, subject, message, cc_email)
+    except ValueError as exc:
+        return f"Email sending failed: {exc}"
     except smtplib.SMTPAuthenticationError:
-        logging.error("Gmail authentication failed")
-        return "Email sending failed: Authentication error. Please check your Gmail credentials."
-    except smtplib.SMTPException as e:
-        logging.error(f"SMTP error occurred: {e}")
-        return f"Email sending failed: SMTP error - {str(e)}"
-    except Exception as e:
-        logging.error(f"Error sending email: {e}")
-        return f"An error occurred while sending email: {str(e)}"
+        logger.exception("Gmail authentication failed")
+        return "Email sending failed: Gmail rejected the app password. Check your credentials."
+    except (smtplib.SMTPException, OSError) as exc:
+        logger.exception("SMTP send failed")
+        return f"Email sending failed: {exc}"
+    except Exception:
+        logger.exception("Unexpected email sending failure")
+        return "Email sending failed because of an unexpected error."
